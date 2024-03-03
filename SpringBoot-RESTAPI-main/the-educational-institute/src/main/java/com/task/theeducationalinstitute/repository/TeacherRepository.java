@@ -16,6 +16,6 @@ public interface TeacherRepository extends JpaRepository<Teacher,Long> {
 
     Optional<Teacher> findByFirstNameAndLastName(String firstName, String lastName);
 
-
+    Boolean existsById(long groupId);
 
 }
