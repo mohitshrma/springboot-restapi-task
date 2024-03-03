@@ -8,14 +8,17 @@ import com.task.theeducationalinstitute.repository.RoutineRepository;
 import com.task.theeducationalinstitute.repository.TeacherRepository;
 import java.time.LocalDate;
 import java.time.Period;
+import java.time.chrono.ChronoPeriod;
 import java.util.HashMap;
 import java.util.List;
 import com.task.theeducationalinstitute.utils.TeacherUtils;
+
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cglib.core.Local;
 import org.springframework.stereotype.Service;
 import java.time.Duration;
 import java.time.LocalTime;
@@ -73,8 +76,10 @@ public class TeacherServiceImplementation implements TeacherService{
 
     @Override
     public long getNumberOfDays(LocalDate startDate, LocalDate endDate) {
-        Period period = Period.between(startDate, endDate);
-        return period.getDays() + 1;
+        //Period period = Period.between(startDate, endDate);
+        Period period = Period.from(ChronoPeriod.between(startDate,endDate));
+        return period.getDays()+ 1;
+
     }
 
 
@@ -90,34 +95,30 @@ public class TeacherServiceImplementation implements TeacherService{
         if (checkTeacher.isPresent()) {
             Teacher teacher = checkTeacher.get(); // Get the teacher from the optional
 
-            // Map to store total work hours for each date
-            Map<LocalDate, Double> workHoursByDate = new HashMap<>();
+            double totalWorkHours = 0.0;
 
-            List<Routine> allRoutines = routineRepository.findByTeacherAndRoutineDateBetween(teacher, startDate, endDate);
+            LocalDate currentDate = startDate;
+            while (!currentDate.isAfter(endDate)) {
+                List<Routine> allRoutines = routineRepository.findByTeacherAndRoutineDateBetween(teacher, startDate, endDate);
 
-            // Calculate the number of days between the start and end dates
-            long numberOfDays = getNumberOfDays(startDate, endDate);
-            System.out.println(numberOfDays);
+                double workHoursForDay = 0.0;
 
-            // Iterate over each routine and calculate the work hours
-            for (Routine routine : allRoutines) {
-                LocalDate routineDate = routine.getRoutineDate();
-                LocalTime startTime = routine.getStartTime();
-                LocalTime endTime = routine.getEndTime();
-                long minutes = Duration.between(startTime, endTime).toMinutes();
-                double hours = minutes / 60.0;
+                // Iterate over each routine and calculate the work hours
+                for (Routine routine : allRoutines) {
+                    //LocalDate routineDate = routine.getRoutineDate();
+                    LocalTime startTime = routine.getStartTime();
+                    LocalTime endTime = routine.getEndTime();
+                    long minutes = Duration.between(startTime, endTime).toMinutes();
+                    double hours = minutes / 60.0;
+                    workHoursForDay += hours;
+                }
 
-                // Add or update the total work hours for the routine's date
-                workHoursByDate.put(routineDate, workHoursByDate.getOrDefault(routineDate, 0.0) + hours);
+                // Calculate the total work hours by summing up the values in the map
+                totalWorkHours += workHoursForDay;
 
+                // Move to the next day
+                currentDate = currentDate.plusDays(1);
             }
-
-            // Calculate the total work hours by summing up the values in the map
-            double totalWorkHours = workHoursByDate.values().stream().mapToDouble(Double::doubleValue).sum();
-
-            // Adjust the total work hours based on the number of days
-            totalWorkHours *= numberOfDays;
-
             return totalWorkHours;
         } else {
             throw new TeacherNotFoundException("Teacher not found for provided first name and last name.");

@@ -31,10 +31,32 @@ public class RoutineServiceImplementation implements RoutineService{
     public RoutineResponse createRoutine(RoutineRequest routineRequest) {
         if(routineRepository.existsByGroup_GroupIdAndTeacher_TeacherId(routineRequest.getGroupId(), routineRequest.getTeacherId()))
         {
-            return RoutineResponse.builder()
-                    .responseCode(RoutineUtils.ROUTINE_EXISTS_CODE)
-                    .responseMessage(RoutineUtils.ROUTINE_EXISTS_MESSAGE)
+            //If the exists/not added yet, newRoutine is created with following members.
+            Routine newRoutine = Routine.builder()
+                    .routineName(routineRequest.getRoutineName())
+                    .routineDate(routineRequest.getRoutineDate())
+                    .startTime(routineRequest.getStartTime())
+                    .endTime(routineRequest.getEndTime())
+                    .group(Group.builder()
+                            .groupId(routineRequest.getGroupId())
+                            .build())
+                    .teacher(Teacher.builder()
+                            .teacherId(routineRequest.getTeacherId())
+                            .build())
                     .build();
+
+            Routine savedRoutine = routineRepository.save(newRoutine);
+
+            return RoutineResponse.builder()
+                    .teacherId(savedRoutine.getTeacher().getTeacherId())
+                    .groupId(savedRoutine.getGroup().getGroupId())
+                    .responseCode(RoutineUtils.ROUTINE_CREATION_CODE)
+                    .responseMessage(RoutineUtils.ROUTINE_CREATION_MESSAGE)
+                    .build();
+//            return RoutineResponse.builder()
+//                    .responseCode(RoutineUtils.ROUTINE_EXISTS_CODE)
+//                    .responseMessage(RoutineUtils.ROUTINE_EXISTS_MESSAGE)
+//                    .build();
         }
         else {
             //If the routine doesn't exist/not added yet, newRoutine is created with following members.
